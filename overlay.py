@@ -31,9 +31,9 @@ class MainWindow(QMainWindow):
         # Create a QMenu object for the dropdown
         self.menu = QMenu()
         action1 = QAction("Inspect", self)
-        action2 = QAction("", self)
+#        action2 = QAction("", self)
         self.menu.addAction(action1)
-        self.menu.addAction(action2)
+#        self.menu.addAction(action2)
 
         menu_button = QPushButton()
         menu_button.setIcon(QIcon("assets/menu_icon.png"))
