@@ -2,12 +2,17 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QMainWindow, QApp
 from PyQt5.QtCore import Qt, QSize, QPoint
 from PyQt5.QtGui import QIcon
 
+from cursor_dot import CursorDot
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
         self.draggable = True
         self.drag_position = None
+
+        #self.cursor_dot = CursorDot()
+        #self.cursor_dot.show()
 
         self.setWindowFlags(
             Qt.WindowStaysOnTopHint |
@@ -19,6 +24,7 @@ class MainWindow(QMainWindow):
         self.bar_height = 30
         self.initUI()
         self.updatePosition()
+        
 
     def initUI(self):
         central_widget = QWidget(self)
