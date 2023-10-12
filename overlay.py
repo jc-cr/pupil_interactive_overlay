@@ -1,8 +1,8 @@
+from PyQt5.QtWidgets import QDesktopWidget
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QMainWindow, QApplication, QMenu, QAction
 from PyQt5.QtCore import Qt, QSize, QPoint
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCursor
 
-from cursor_dot import CursorDot
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -11,13 +11,10 @@ class MainWindow(QMainWindow):
         self.draggable = True
         self.drag_position = None
 
-        #self.cursor_dot = CursorDot()
-        #self.cursor_dot.show()
 
         self.setWindowFlags(
             Qt.WindowStaysOnTopHint |
-            Qt.FramelessWindowHint |
-            Qt.X11BypassWindowManagerHint
+            Qt.FramelessWindowHint 
         )
 
         self.bar_width = 400
@@ -59,11 +56,15 @@ class MainWindow(QMainWindow):
         self.menu.exec_(pos)
 
 
+
     def updatePosition(self):
-        screen_geometry = QApplication.desktop().availableGeometry()
+        desktop = QDesktopWidget()
+        screen_number = desktop.screenNumber(QCursor.pos())
+        screen_geometry = desktop.availableGeometry(screen_number)
         screen_width = screen_geometry.width()
         x_center = (screen_width - self.bar_width) // 2
         self.setGeometry(x_center, 0, self.bar_width, self.bar_height)
+
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
