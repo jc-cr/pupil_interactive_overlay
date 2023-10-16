@@ -53,18 +53,33 @@ class PupilCoreInterface:
                     if total_size == len(payload['__raw_data__'][0]):
                         self.recent_world = np.frombuffer(payload['__raw_data__'][0], dtype=np.uint8).reshape(payload['height'], payload['width'], 3)
 
-    def terminate(self):
-        '''
-        Cleans up the resources used by the Pupil Core interface
-        '''
-        self.exit_thread = True
-        if self.capture_thread:
-            self.capture_thread.join(timeout=1)
+   def terminate(self):
+    '''
+    Cleans up the resources used by the Pupil Core interface
+    '''
+    self.exit_thread = True  # Signal to the capture thread to exit
+    
+    # Wait for the capture thread to finish if it's active
+    if self.capture_thread and self.capture_thread.is_alive():
+        self.capture_thread.join(timeout=1)
+    
+    # Close the ZMQ sockets
+    try:
+        self.req.setsockopt(zmq.LINGER, 0)  # Do not wait for pending messages to be sent
         self.req.close()
-        self.sub.close()
-        self.context.term()
         
-        # Terminate the Pupil capture process
-        if self.p:
+        self.sub.setsockopt(zmq.LINGER, 0)
+        self.sub.close()
+    except Exception as e:
+        print(f"Exception while closing ZMQ sockets: {e}")
+    
+    # Terminate the ZMQ context
+    self.context.term()
+    
+    # Terminate the Pupil capture process
+    if self.p:
+        try:
             self.p.terminate()
             self.p.wait(timeout=5)
+        except Exception as e:
+            print(f"Exception while terminating Pupil capture process: {e}")
