@@ -6,14 +6,18 @@ from pupil_core_interface import PupilCoreInterface
 
 def cleanup():
     print("Cleaning up resources...")
-    glasses.terminate()
+    try:
+        glasses.terminate()
+    except Exception as e:
+        print(f"An error occurred during cleanup: {e}")
+
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    try: 
+        app = QApplication(sys.argv)
 
-    glasses = PupilCoreInterface()
+        glasses = PupilCoreInterface()
 
-    try:
         glasses.connect()
         glasses.start_capture()
 
@@ -27,6 +31,4 @@ if __name__ == '__main__':
 
     except Exception as e:
         print(f"An error occurred: {e}")
-    finally:
-        print("Cleaning up resources...")
-        cleanup()
+        exit(1)
