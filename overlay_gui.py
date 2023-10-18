@@ -80,7 +80,10 @@ class MainWindow(QMainWindow):
 
         self.bar_width = 400
         self.bar_height = 30
-        self.exitIconPath = "assets/close_icon.png"
+
+
+        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.exitIconPath = os.path.join(self.dir_path, "assets/close_icon.png")
 
         self.initUI()
         self.updatePosition()
@@ -125,13 +128,11 @@ class MainWindow(QMainWindow):
             # Update the button to look like it's pressed
             self.toggle_button.setStyleSheet("background-color: grey;")
             self.video_window.show()
-            # Start video processing here
 
         else:
             # Reset the button style
             self.toggle_button.setStyleSheet("")
             self.video_window.hide()
-            # Stop video processing here
 
     def updatePosition(self):
         desktop = QDesktopWidget()

@@ -23,6 +23,12 @@ class PupilCoreInterface:
         # Initialize logging
         logging.basicConfig(level=logging.INFO)
 
+        # Update for dynamic paths
+        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.pupil_path = os.path.join(self.dir_path, "pupil", "pupil_src", "main.py")
+        self.pupil_dir = os.path.dirname(self.pupil_path)
+
+
         # Initialize other instance variables
         self.req_port = "50020"
         self.addr = '127.0.0.1'
@@ -62,7 +68,8 @@ class PupilCoreInterface:
                 return
 
             # Start the Pupil capture program
-            self.p = Popen(["python3", "pupil/pupil_src/main.py", "capture", "--hide-ui"], preexec_fn=os.setsid)
+            self.p = Popen(["python3", self.pupil_path, "capture", "--hide-ui"], cwd=self.pupil_dir, preexec_fn=os.setsid)
+
 
             # Try connecting the REQ socket
             self.req.connect(f"tcp://{self.addr}:{self.req_port}")
