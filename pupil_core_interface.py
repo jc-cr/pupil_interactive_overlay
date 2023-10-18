@@ -1,7 +1,6 @@
 import zmq
 import signal
 from msgpack import unpackb
-import msgpack
 import numpy as np
 from threading import Thread
 from subprocess import Popen
@@ -10,8 +9,14 @@ import psutil
 import os
 import socket
 
-
 class PupilCoreInterface:
+    """
+    This class provides an interface for the Pupil Capture program. It is responsible for starting the Pupil Capture program,
+    connecting to its ZMQ sockets, and receiving the frame data. It exposes the following instance variables:
+    - recent_world: The most recent frame of the world camera
+    - gaze_x: The x-coordinate of the gaze point
+    - gaze_y: The y-coordinate of the gaze point
+    """
     def __init__(self):
         # Initialize logging
         logging.basicConfig(level=logging.INFO)
@@ -99,24 +104,12 @@ class PupilCoreInterface:
                     if total_size == len(payload['__raw_data__'][0]):
                         self.recent_world = np.frombuffer(payload['__raw_data__'][0], dtype=np.uint8).reshape(payload['height'], payload['width'], 3)
 
-    def send_recv_notification(self, n):
-        self.req.send_string(f"notify.{n['subject']}", flags=zmq.SNDMORE)
-        self.req.send(msgpack.dumps(n))
-        return self.req.recv_string()
-
     def terminate(self):
         try:
             self.exit_thread = True
 
             if self.capture_thread and self.capture_thread.is_alive():
                 self.capture_thread.join(timeout=1)
-
-            if self.req:
-                try:
-                    n = {'subject': 'service_process.should_stop'}
-                    logging.info(self.send_recv_notification(n))
-                except Exception as e:
-                    logging.error(f"Failed to send termination notification: {e}")
 
             if self.req:
                 self.req.setsockopt(zmq.LINGER, 0)
@@ -136,19 +129,11 @@ class PupilCoreInterface:
             if self.p:
                 os.killpg(os.getpgid(self.p.pid), signal.SIGKILL)  # Forcefully terminate the process group
                 self.p.wait(timeout=5)  # Wait for the process to terminate
-                logging.info(f"Forcefully terminated Pupil capture program with PID {self.p.pid}.")
+                logging.info(f"Terminated Pupil capture program with PID {self.p.pid}.")
                 self.p = None
 
-            # Check for Zombie Pupil processes again and terminate them
-            for proc in psutil.process_iter():
-                try:
-                    if "pupil" in proc.name().lower():
-                        logging.warning(f"Found a zombie Pupil Core process: {proc.name()}, terminating it.")
-                        proc.terminate()
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    pass
-
             logging.info("Successfully terminated all resources.")
+
         except Exception as e:
             logging.error(f"An exception occurred during termination: {e}")
             raise e
