@@ -18,13 +18,16 @@ class VideoWindow(QWidget):
 
         self.pupil_interface = pupil_interface
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.setGeometry(600, 400, 640, 480)
+
+        # Set Window size to appear as small rectagle in bottom right corner
+        self.setFixedSize(400, 300)
         self.video_label = QLabel(self)
         self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.video_label.setScaledContents(True)
         layout = QVBoxLayout()
         layout.addWidget(self.video_label)
         self.setLayout(layout)
+        self.setWindowToBottomRight()
 
     def update_frame(self):
         try:
@@ -51,6 +54,12 @@ class VideoWindow(QWidget):
     def mouseReleaseEvent(self, event):
         self.draggable = False
 
+    def setWindowToBottomRight(self):
+        desktop = QDesktopWidget()
+        screen = desktop.screenGeometry()
+        width, height = self.geometry().width(), self.geometry().height()
+        self.setGeometry(screen.width() - width, screen.height() - height, width, height)
+
 
 class MainWindow(QMainWindow):
     def __init__(self, pupil_interface):
@@ -58,10 +67,6 @@ class MainWindow(QMainWindow):
         self.pupil_interface = pupil_interface
 
         self.video_window = VideoWindow(self.pupil_interface)
-        self.video_window.show()
-
-        # Timer for updating the video feed
-        self.timer = QTimer()
 
         self.label = QLabel(self)
         layout = QVBoxLayout()
@@ -75,25 +80,22 @@ class MainWindow(QMainWindow):
 
         self.bar_width = 400
         self.bar_height = 30
-        self.menuIconPath = "assets/menu_icon.png"
         self.exitIconPath = "assets/close_icon.png"
 
         self.initUI()
         self.updatePosition()
 
-    def _initMenuButton(self, layout):
-        menu_button = QPushButton()
-        if not os.path.exists(self.menuIconPath):
-            raise FileNotFoundError(self.menuIconPath)
-        menu_button.setIcon(QIcon(self.menuIconPath))
-        menu_button.setIconSize(QSize(200, 20))
-        menu_button.clicked.connect(self.showMenu)
-        layout.addWidget(menu_button, alignment=Qt.AlignCenter)
+    def _initVideoWindowToggleButton(self, layout):
+        self.toggle_button = QPushButton("Toggle Inspection Mode")
+        self.toggle_button.setFixedSize(200, 20)  # Set the fixed size to 200x20
+        self.toggle_button.setCheckable(True)  # Make it a toggle button
+        self.toggle_button.clicked.connect(self.toggle_video_window)
 
-        # Create a QMenu object for the dropdown
-        self.menu = QMenu()
-        action1 = QAction("Inspect", self)
-        self.menu.addAction(action1)
+        # Center-align the text
+        self.toggle_button.setStyleSheet("text-align: center;")
+        
+        layout.addWidget(self.toggle_button, alignment=Qt.AlignCenter)
+
 
     def _initExitButton(self, layout):
         exit_button = QPushButton()
@@ -110,17 +112,26 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QHBoxLayout()
         try:
-            self._initMenuButton(layout)
+            self._initVideoWindowToggleButton(layout)
             self._initExitButton(layout)
             central_widget.setLayout(layout)
         except FileNotFoundError as e:
             print(f"Unable to find file: {e.args[0]}")
             exit(1)
 
-    def showMenu(self):
-        button = self.sender()
-        pos = button.mapToGlobal(QPoint(0, button.height()))
-        self.menu.exec_(pos)
+    def toggle_video_window(self):
+        is_checked = self.toggle_button.isChecked()
+        if is_checked:
+            # Update the button to look like it's pressed
+            self.toggle_button.setStyleSheet("background-color: grey;")
+            self.video_window.show()
+            # Start video processing here
+
+        else:
+            # Reset the button style
+            self.toggle_button.setStyleSheet("")
+            self.video_window.hide()
+            # Stop video processing here
 
     def updatePosition(self):
         desktop = QDesktopWidget()

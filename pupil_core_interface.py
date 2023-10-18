@@ -16,6 +16,8 @@ class PupilCoreInterface:
     - recent_world: The most recent frame of the world camera
     - gaze_x: The x-coordinate of the gaze point
     - gaze_y: The y-coordinate of the gaze point
+    - fixation_x: The x-coordinate of the fixation point
+    - fixation_y: The y-coordinate of the fixation point
     """
     def __init__(self):
         # Initialize logging
@@ -76,7 +78,6 @@ class PupilCoreInterface:
             logging.error(f"Exception during connect: {e}")
             self.terminate()
             raise e
-
 
     def start_capture(self):
         '''
