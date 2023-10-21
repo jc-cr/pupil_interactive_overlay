@@ -16,8 +16,6 @@ class PupilCoreInterface:
     - recent_world: The most recent frame of the world camera
     - gaze_x: The x-coordinate of the gaze point
     - gaze_y: The y-coordinate of the gaze point
-    - fixation_x: The x-coordinate of the fixation point
-    - fixation_y: The y-coordinate of the fixation point
     """
     def __init__(self):
         # Initialize logging
@@ -27,6 +25,11 @@ class PupilCoreInterface:
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.pupil_path = os.path.join(self.dir_path, "pupil", "pupil_src", "main.py")
         self.pupil_dir = os.path.dirname(self.pupil_path)
+
+        #DEBUG: Print the paths
+        logging.info(f"dir_path: {self.dir_path}")
+        logging.info(f"pupil_path: {self.pupil_path}")
+        logging.info(f"pupil_dir: {self.pupil_dir}")
 
 
         # Initialize other instance variables
@@ -68,7 +71,7 @@ class PupilCoreInterface:
                 return
 
             # Start the Pupil capture program
-            self.p = Popen(["python3", self.pupil_path, "capture", "--hide-ui"], cwd=self.pupil_dir, preexec_fn=os.setsid)
+            self.p = Popen(["python3", self.pupil_path, "capture", "--hide-ui"], cwd=self.pupil_dir , preexec_fn=os.setsid)
 
 
             # Try connecting the REQ socket
