@@ -16,6 +16,8 @@ class PupilCoreInterface:
     - recent_world: The most recent frame of the world camera
     - gaze_x: The x-coordinate of the gaze point
     - gaze_y: The y-coordinate of the gaze point
+    - fixation_x: The x-coordinate of the fixation point
+    - fixation_y: The y-coordinate of the fixation point
     """
     def __init__(self):
         # Initialize logging
@@ -25,8 +27,8 @@ class PupilCoreInterface:
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.pupil_path = os.path.join(self.dir_path, "pupil", "pupil_src", "main.py")
         self.pupil_dir = os.path.dirname(self.pupil_path)
-
-        #DEBUG: Print the paths
+        
+        # DEBUG: Print the paths
         logging.info(f"dir_path: {self.dir_path}")
         logging.info(f"pupil_path: {self.pupil_path}")
         logging.info(f"pupil_dir: {self.pupil_dir}")
@@ -38,6 +40,9 @@ class PupilCoreInterface:
         self.exit_thread = False
         self.recent_world = None
         self.gaze_x, self.gaze_y = 0, 0
+        self.smoothed_gaze = np.array([0.0, 0.0])
+        self.smoothing_factor = 0.03  # This value can be adjusted
+
         self.p = None
         self.capture_thread = None
 
@@ -71,7 +76,7 @@ class PupilCoreInterface:
                 return
 
             # Start the Pupil capture program
-            self.p = Popen(["python3", self.pupil_path, "capture", "--hide-ui"], cwd=self.pupil_dir , preexec_fn=os.setsid)
+            self.p = Popen(["python3", self.pupil_path, "capture", "--hide-ui"], preexec_fn=os.setsid)
 
 
             # Try connecting the REQ socket
@@ -97,6 +102,16 @@ class PupilCoreInterface:
         self.capture_thread.daemon = True
         self.capture_thread.start()
 
+    def get_gaze_coordinates(self):
+        if self.recent_world is None:
+            return None  # No recent frame available
+
+        # Convert gaze coordinates from normalized to pixel values
+        gaze_x_pixel = int(self.gaze_x * self.recent_world.shape[1])
+        gaze_y_pixel = int(self.gaze_y * self.recent_world.shape[0])
+
+        return (gaze_x_pixel, gaze_y_pixel)
+
     def _frame_capture_loop(self):
         while not self.exit_thread:
             if self.context is None:
@@ -110,10 +125,27 @@ class PupilCoreInterface:
                 payload['__raw_data__'] = extra_frames
 
             if topic == 'frame.world':
-                if 'height' in payload and 'width' in payload and '__raw_data__' in payload:
-                    total_size = payload['height'] * payload['width'] * 3
-                    if total_size == len(payload['__raw_data__'][0]):
-                        self.recent_world = np.frombuffer(payload['__raw_data__'][0], dtype=np.uint8).reshape(payload['height'], payload['width'], 3)
+                self._update_world_frame(payload)
+            elif topic.startswith('pupil.'):
+                self._update_gaze_coordinates(payload)
+
+    def _update_world_frame(self, payload):
+        if 'height' in payload and 'width' in payload and '__raw_data__' in payload:
+            total_size = payload['height'] * payload['width'] * 3
+            if total_size == len(payload['__raw_data__'][0]):
+                self.recent_world = np.frombuffer(payload['__raw_data__'][0], dtype=np.uint8).reshape(payload['height'], payload['width'], 3)
+
+    def _update_gaze_coordinates(self, payload):
+        """
+        Updates the gaze coordinates. Exponential Moving Average (EMA) is used to smooth the gaze coordinates.
+        """
+        if 'norm_pos' in payload:
+            new_gaze_point = np.array(payload['norm_pos'])
+            
+            # Calculate the smoothed gaze point
+            self.smoothed_gaze = self.smoothing_factor * new_gaze_point + (1 - self.smoothing_factor) * self.smoothed_gaze
+
+
 
     def terminate(self):
         try:

@@ -4,9 +4,10 @@ from PyQt5.QtCore import Qt, QSize, QPoint, QTimer
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtGui import QIcon, QCursor, QPixmap, QImage
 import os
+from abstracts import VideoSource, SegmentationTarget
 
 class VideoWindow(QWidget):
-    def __init__(self, pupil_interface):
+    def __init__(self, video_render: VideoSource):
         super(VideoWindow, self).__init__()
 
         self.draggable = True
@@ -16,7 +17,6 @@ class VideoWindow(QWidget):
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)  # Update every 30 ms
 
-        self.pupil_interface = pupil_interface
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
 
         # Set Window size to appear as small rectagle in bottom right corner
@@ -29,16 +29,20 @@ class VideoWindow(QWidget):
         self.setLayout(layout)
         self.setWindowToBottomRight()
 
+
+        self.video_renderer = video_render
+
     def update_frame(self):
-        try:
-            if self.pupil_interface.recent_world is not None:
-                height, width, channel = self.pupil_interface.recent_world.shape
-                bytes_per_line = 3 * width
-                image = QImage(self.pupil_interface.recent_world.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
-                self.video_label.setPixmap(QPixmap.fromImage(image))
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            raise e
+            try:
+                frame = self.video_source.get_frame()
+                if frame is not None:
+                    height, width, channel = frame.shape
+                    bytes_per_line = 3 * width
+                    image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
+                    self.video_label.setPixmap(QPixmap.fromImage(image))
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                raise e
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -62,9 +66,13 @@ class VideoWindow(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, pupil_interface):
+    def __init__(self, video_source: VideoSource, segmentation_target: SegmentationTarget):
         super(MainWindow, self).__init__()
-        self.pupil_interface = pupil_interface
+
+        self.video_source = video_source
+        self.segmentation_target = segmentation_target
+
+        self.video_window = VideoWindow(self.video_source)
 
         self.video_window = VideoWindow(self.pupil_interface)
 
