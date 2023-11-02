@@ -1,13 +1,19 @@
 from PyQt5.QtWidgets import QDesktopWidget, QLabel, QVBoxLayout
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QMainWindow, QApplication, QMenu, QAction
-from PyQt5.QtCore import Qt, QSize, QPoint, QTimer
+from PyQt5.QtCore import Qt, QSize, QPoint, QTimer, QEvent
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtGui import QIcon, QCursor, QPixmap, QImage
+from PyQt5.QtCore import pyqtSignal
 import os
-from abstracts import VideoSource, SegmentationTarget
+from abstracts import FrameUpdater
+
+
 
 class VideoWindow(QWidget):
-    def __init__(self, video_render: VideoSource):
+
+    mouse_clicked = pyqtSignal(int, int)
+
+    def __init__(self, frame_updater: FrameUpdater):
         super(VideoWindow, self).__init__()
 
         self.draggable = True
@@ -26,29 +32,37 @@ class VideoWindow(QWidget):
         self.video_label.setScaledContents(True)
         layout = QVBoxLayout()
         layout.addWidget(self.video_label)
+        layout.setContentsMargins(0, 0, 0, 0)  # Ensure no margins
         self.setLayout(layout)
         self.setWindowToBottomRight()
 
 
-        self.video_renderer = video_render
+
+        self.frame_updater = frame_updater
 
     def update_frame(self):
-            try:
-                frame = self.video_source.get_frame()
-                if frame is not None:
-                    height, width, channel = frame.shape
-                    bytes_per_line = 3 * width
-                    image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
-                    self.video_label.setPixmap(QPixmap.fromImage(image))
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                raise e
-
+        try:
+            frame = self.frame_updater.get_updated_frame()
+            if frame is not None:
+                height, width, channel = frame.shape
+                bytes_per_line = 3 * width
+                image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
+                self.video_label.setPixmap(QPixmap.fromImage(image))
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            raise e
+        
     def mousePressEvent(self, event):
+        """
+        Single click to move the window, double click to emit a signal 
+        """
         if event.button() == Qt.LeftButton:
             self.draggable = True
             self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
+            if event.type() == QEvent.MouseButtonDblClick:  # Check for double-click
+                self.mouse_clicked.emit(event.x(), event.y())
             event.accept()
+
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton and self.draggable:
@@ -66,20 +80,15 @@ class VideoWindow(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, video_source: VideoSource, segmentation_target: SegmentationTarget):
+    def __init__(self, frame_updater: FrameUpdater):
         super(MainWindow, self).__init__()
 
-        self.video_source = video_source
-        self.segmentation_target = segmentation_target
-
-        self.video_window = VideoWindow(self.video_source)
-
-        self.video_window = VideoWindow(self.pupil_interface)
+        self.frame_updater = frame_updater
+        self.video_window = VideoWindow(self.frame_updater)
 
         self.label = QLabel(self)
         layout = QVBoxLayout()
         layout.addWidget(self.label)
-
 
         self.setWindowFlags(
             Qt.WindowStaysOnTopHint |
@@ -88,7 +97,6 @@ class MainWindow(QMainWindow):
 
         self.bar_width = 400
         self.bar_height = 30
-
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.exitIconPath = os.path.join(self.dir_path, "assets/close_icon.png")

@@ -44,11 +44,17 @@ class DrawOnVideoFrame:
         self.video_source = video_source
         self.video_frame_target = video_frame_target
 
-    def render_frame(self):
+    def get_updated_frame(self):
         frame = self.video_source.get_frame()
         target_x, target_y = self.video_frame_target.get_target()
         
-        # Overlay the target on the frame at (target_x, target_y).
-        # This is a placeholder. Actual rendering can be done with a library of choice.
+        # If the frame is not None, overlay the target on the frame at (target_x, target_y).
+        if frame is not None:
+            radius = 10  # Radius of the circle
+            color = (0, 0, 255)  # Color of the circle (red in BGR format)
+            thickness = 2  # Thickness of the circle outline. -1 fills the circle.
+
+            cv2.circle(frame, (target_x, target_y), radius, color, thickness)
+
         
         return frame
