@@ -1,5 +1,5 @@
 from utils import WebcamVideoSource, MouseClickVideoFrameTarget, DrawOnVideoFrame
-from overlay_gui import VideoWindow, MainWindow
+from overlay_gui import MainWindow
 from PyQt5.QtWidgets import QApplication
 import sys
 

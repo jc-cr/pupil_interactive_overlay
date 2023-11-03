@@ -5,7 +5,8 @@ from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtGui import QIcon, QCursor, QPixmap, QImage
 from PyQt5.QtCore import pyqtSignal
 import os
-from abstracts import FrameUpdater
+# relative imports
+from .abstracts import FrameUpdater
 
 
 

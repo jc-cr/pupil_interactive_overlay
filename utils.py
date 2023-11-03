@@ -1,5 +1,6 @@
-from abstracts import VideoSource, VideoFrameTarget
 import cv2
+# Relative import
+from .abstracts import VideoSource, VideoFrameTarget
 
 class WebcamVideoSource(VideoSource):
 
